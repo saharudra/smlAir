@@ -23,11 +23,6 @@ def add_values_agb():
     for country in other_countries:
         for gender in other_gender:
             for k in bkts:
-                newrow=pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
-                ge_gender_map = age_gender_map.append(newrow, ignore_index=True)
-    for country in other_countries:
-        for gender in other_gender:
-            for k in bkts:
                 newrow = pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
                 age_gender_map = age_gender_map.append(newrow, ignore_index=True)
 
