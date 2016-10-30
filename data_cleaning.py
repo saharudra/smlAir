@@ -172,3 +172,4 @@ for f in ohe_features:
     train_users_data = pd.concat((train_users_data, train_users_data_dummy), axis=1)
 
 train_users_data_new.to_csv('train_users_v2.csv')
+
