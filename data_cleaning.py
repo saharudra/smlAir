@@ -88,6 +88,15 @@ def add_missing_age_gender_data():
         newrow = pd.DataFrame([[k, 'NDF', 'MALE', '', ''], [k, 'other', 'MALE', '', ''],[k, 'NDF', 'FEMALE', '', ''], [k, 'other', 'FEMALE', '', '']], columns=list(age_gender_map.columns))
         age_gender_map = age_gender_map.append(newrow, ignore_index=True)
 
+def del_duplicate_columns():
+    del train_users_data['gender']
+    del train_users_data['time_first_active']
+    del train_users_data['age']
+    del age_gender_map['age_bucket']
+    del age_gender_map['gender']
+    del age_gender_map['country_destination']
+
+
 #############################################
 #                                           #
 #               MAIN FUNCTION               #
@@ -151,6 +160,8 @@ formatgender()
 
 train_users_data['age_gender_dest']=train_users_data[['country_destination','gender','age_bucket']].apply(lambda x : '{}_{}_{}'.format(x[0],x[1],x[2]), axis=1)
 age_gender_map['age_gender_dest']=age_gender_map[['country_destination','gender','age_bucket']].apply(lambda x : '{}_{}_{}'.format(x[0],x[1],x[2]), axis=1)
+
+del_duplicate_columns()
 
 train_users_data=pd.merge(left=train_users_data,right=age_gender_map, left_on='age_gender_dest', right_on='age_gender_dest')
 
