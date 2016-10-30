@@ -1,13 +1,35 @@
 import pandas as pd
 import numpy as np
 from scipy import stats
+import copy
 
 def formatgender():
     for index, row in age_gender_map.iterrows():
         if age_gender_map.loc[index]['gender'] == "male":
             age_gender_map.ix[index,'gender'] = "MALE"
-        else:
+        elif age_gender_map.loc[index]['gender'] == "female":
             age_gender_map.ix[index, 'gender'] = "FEMALE"
+
+def add_values_agb():
+    global age_gender_map
+    other_countries=set(train_users_data.country_destination)-set(age_gender_map.country_destination)
+    other_gender=set(train_users_data.gender)-set(age_gender_map.gender)
+    bkts = set(age_gender_map.age_bucket)
+    for country in set(train_users_data.country_destination):
+        for gender in other_gender:
+            for k in bkts:
+                newrow = pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
+                age_gender_map = age_gender_map.append(newrow, ignore_index=True)
+    for country in other_countries:
+        for gender in other_gender:
+            for k in bkts:
+                newrow=pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
+                ge_gender_map = age_gender_map.append(newrow, ignore_index=True)
+    for country in other_countries:
+        for gender in other_gender:
+            for k in bkts:
+                newrow = pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
+                age_gender_map = age_gender_map.append(newrow, ignore_index=True)
 
 ## encodeage performed on train_users_data and age_gender_bkts.csv
 ## if n=0, encode train_users_data
@@ -32,7 +54,7 @@ def encodeage():
         elif (age>=35) and (age<40):
             updated_age="35-39"
         elif (age>=40) and (age<45):
-            updated_age="40-45"
+            updated_age="40-44"
         elif (age>=45) and (age<50):
             updated_age="45-49"
         elif (age>=50) and (age<55):
@@ -60,6 +82,7 @@ def encodeage():
         train_users_data.ix[index,'age_bucket']=updated_age
 
 def add_missing_age_gender_data():
+    global age_gender_map
     bkts=set(age_gender_map.age_bucket)
     for k in bkts:
         newrow = pd.DataFrame([[k, 'NDF', 'MALE', '', ''], [k, 'other', 'MALE', '', ''],[k, 'NDF', 'FEMALE', '', ''], [k, 'other', 'FEMALE', '', '']], columns=list(age_gender_map.columns))
@@ -122,11 +145,14 @@ train_users_data=pd.merge(left=train_users_data,right=countries_data, left_on='c
 sLength=len(train_users_data['age'])
 train_users_data['age_bucket'] = pd.Series(np.empty(sLength, dtype=object), index=train_users_data.index)
 encodeage()
+train_users_data_copy=copy.deepcopy(train_users_data)
+add_values_agb()
 formatgender()
 
 train_users_data['age_gender_dest']=train_users_data[['country_destination','gender','age_bucket']].apply(lambda x : '{}_{}_{}'.format(x[0],x[1],x[2]), axis=1)
 age_gender_map['age_gender_dest']=age_gender_map[['country_destination','gender','age_bucket']].apply(lambda x : '{}_{}_{}'.format(x[0],x[1],x[2]), axis=1)
 
+train_users_data=pd.merge(left=train_users_data,right=age_gender_map, left_on='age_gender_dest', right_on='age_gender_dest')
 
 ohe_features = ['gender','first_affiliate_tracked']
 for f in ohe_features:
