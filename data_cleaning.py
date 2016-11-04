@@ -23,6 +23,11 @@ def add_values_agb():
     for country in other_countries:
         for gender in other_gender:
             for k in bkts:
+                newrow=pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
+                ge_gender_map = age_gender_map.append(newrow, ignore_index=True)
+    for country in other_countries:
+        for gender in other_gender:
+            for k in bkts:
                 newrow = pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
                 age_gender_map = age_gender_map.append(newrow, ignore_index=True)
 
@@ -84,13 +89,23 @@ def add_missing_age_gender_data():
         age_gender_map = age_gender_map.append(newrow, ignore_index=True)
 
 def del_duplicate_columns():
-    del train_users_data['gender']
-    del train_users_data['time_first_active']
-    del train_users_data['age']
+    del train_users_data['timestamp_first_active']
+    del train_users_data['day']
+    del train_users_data['hour']
     del age_gender_map['age_bucket']
     del age_gender_map['gender']
     del age_gender_map['country_destination']
 
+def fix_age():
+    ## AirBnB allows users who are 18 and older
+    train_users_data.age[train_users_data.age < 18] = np.nan
+    train_users_data.age[train_users_data.age > 1998] = np.nan
+    train_users_data.age[train_users_data.age > 1896] = 2016 - train_users_data.age
+    train_users_data.age[train_users_data.age > 120] = np.nan
+    train_users_data.ix[train_users_data.age.isnull(), 'age'] = np.median(train_users_data[train_users_data.age.notnull()].age)
+
+def fix_gender():
+    train_users_data.gender[train_users_data.gender == '-unknown-'] = np.nan
 
 #############################################
 #                                           #
@@ -104,6 +119,7 @@ train_users_data=pd.read_csv(train_users)
 train_users_data=train_users_data[train_users_data.country_destination.notnull()]
 train_users_features=list(train_users_data.columns.values)
 
+fix_age()
 
 age_gender_map=pd.read_csv('age_gender_bkts.csv')
 age_gender_features=list(age_gender_map.columns.values)
@@ -131,15 +147,22 @@ all_features_list=set().union(train_users_features,age_gender_features,countries
 
 ## Fill in the missing values
 
-train_users_data.ix[train_users_data.age.isnull(),'age']=np.median(train_users_data[train_users_data.age.notnull()].age)
-
 train_users_data.ix[train_users_data.date_first_booking.isnull(),'date_first_booking']=stats.mode(train_users_data[train_users_data.date_first_booking.notnull()].date_first_booking).mode[0]
 
 # Split first_activity_time as date time and make new features
 
-train_users_data['time_first_active']=pd.to_datetime(train_users_data.timestamp_first_active//1000000, format='%Y%m%d')
+train_users_data['date_first_active']=pd.to_datetime(train_users_data.timestamp_first_active//1000000, format='%Y%m%d')
 train_users_data['day']=train_users_data.timestamp_first_active//1000000 - (train_users_data.timestamp_first_active//100000000)*100
 train_users_data['part_of_month']=pd.cut(train_users_data.day, 3, labels=["Start of month", "Mid month","End of month"])
+train_users_data['month']=(train_users_data.timestamp_first_active//100000000) - (train_users_data.timestamp_first_active//10000000000*100)
+
+## Binning the time
+train_users_data.timestamp_first_active=train_users_data.timestamp_first_active.astype(str)
+train_users_data['hour']=train_users_data.timestamp_first_active.str[8:10].astype(int)
+
+bins=[0,6,10,15,19,23]
+group_names=["Late night","Early Morning","Mid Day","Afternoon","Evening"]
+train_users_data['daypart']=pd.cut(train_users_data['hour'],bins,labels=group_names)
 
 train_users_data['first_affiliate_tracked']=train_users_data['first_affiliate_tracked'].replace(np.nan,'unknown')
 
@@ -156,15 +179,14 @@ formatgender()
 train_users_data['age_gender_dest']=train_users_data[['country_destination','gender','age_bucket']].apply(lambda x : '{}_{}_{}'.format(x[0],x[1],x[2]), axis=1)
 age_gender_map['age_gender_dest']=age_gender_map[['country_destination','gender','age_bucket']].apply(lambda x : '{}_{}_{}'.format(x[0],x[1],x[2]), axis=1)
 
-del_duplicate_columns()
-
-train_users_data=pd.merge(left=train_users_data,right=age_gender_map, left_on='age_gender_dest', right_on='age_gender_dest')
-
 ohe_features = ['gender','first_affiliate_tracked']
 for f in ohe_features:
     train_users_data_dummy = pd.get_dummies(train_users_data[f], prefix=f)
     train_users_data = train_users_data.drop([f], axis=1)
     train_users_data = pd.concat((train_users_data, train_users_data_dummy), axis=1)
 
-train_users_data_new.to_csv('train_users_v2.csv')
+del_duplicate_columns()
 
+train_users_data=pd.merge(left=train_users_data,right=age_gender_map, left_on='age_gender_dest', right_on='age_gender_dest')
+
+train_users_data.to_csv('train_users_v2.csv')
