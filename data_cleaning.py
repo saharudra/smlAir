@@ -24,7 +24,7 @@ def add_values_agb():
         for gender in other_gender:
             for k in bkts:
                 newrow=pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
-                ge_gender_map = age_gender_map.append(newrow, ignore_index=True)
+                age_gender_map = age_gender_map.append(newrow, ignore_index=True)
     for country in other_countries:
         for gender in other_gender:
             for k in bkts:
@@ -117,7 +117,9 @@ def fix_gender():
 train_users="train_users_2.csv"
 train_users_data=pd.read_csv(train_users)
 train_users_data=train_users_data[train_users_data.country_destination.notnull()]
+train_users_data=train_users_data[train_users_data.date_account_created <= train_users_data.date_first_booking]
 train_users_features=list(train_users_data.columns.values)
+
 
 fix_age()
 
