@@ -31,55 +31,13 @@ def add_values_agb():
                 newrow = pd.DataFrame([[k, country, gender, '', '']], columns=list(age_gender_map.columns))
                 age_gender_map = age_gender_map.append(newrow, ignore_index=True)
 
-## encodeage performed on train_users_data and age_gender_bkts.csv
-## if n=0, encode train_users_data
-## if n=1, encode age_gender_bkts
+## encodeage performed on train_users_data
 def encodeage():
-    for index, row in train_users_data.iterrows():
-        age=int(train_users_data.loc[index]['age'])
-        if (age>=0) and (age<5):
-            updated_age="0-4"
-        elif (age>=5) and (age<10):
-            updated_age="5-9"
-        elif (age >= 10) and (age < 15):
-            updated_age = "10-14"
-        elif (age >= 15) and (age < 20):
-            updated_age = "15-19"
-        elif (age>=20) and (age<25):
-            updated_age="20-24"
-        elif (age>=25) and (age<30):
-            updated_age="25-29"
-        elif (age>=30) and (age<35):
-            updated_age="30-34"
-        elif (age>=35) and (age<40):
-            updated_age="35-39"
-        elif (age>=40) and (age<45):
-            updated_age="40-44"
-        elif (age>=45) and (age<50):
-            updated_age="45-49"
-        elif (age>=50) and (age<55):
-            updated_age="50-54"
-        elif (age >= 55) and (age < 60):
-            updated_age = "55-59"
-        elif (age>=60) and (age<65):
-            updated_age="60-64"
-        elif (age>=65) and (age<70):
-            updated_age="65-69"
-        elif (age>=70) and (age<75):
-            updated_age="70-74"
-        elif (age>=75) and (age<80):
-            updated_age="75-79"
-        elif (age>=80) and (age<85):
-            updated_age="80-84"
-        elif (age >= 85) and (age < 90):
-            updated_age = "85-89"
-        elif (age>=90) and (age<95):
-            updated_age="90-94"
-        elif (age >= 95) and (age < 100):
-            updated_age = "95-99"
-        else:
-            updated_age="100+"
-        train_users_data.ix[index,'age_bucket']=updated_age
+    bins = np.array([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 120])
+    group_names = ['0-4', '5-9', '10-14', '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54', \
+                   '55-59', '60-64', '65-69', '70-74', '75-79', '80-84', '85-89', '90-94', '95-99', '100+']
+
+    train_users_data['age_bucket']=pd.cut(train_users_data.age, bins, labels=group_names)
 
 def add_missing_age_gender_data():
     global age_gender_map
