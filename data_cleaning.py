@@ -1,16 +1,14 @@
 import pandas as pd
 import numpy as np
-from scipy import stats
-import copy
+
 
 def formatgender():
-    for index, row in age_gender_map.iterrows():
-        if age_gender_map.loc[index]['gender'] == "male":
-            age_gender_map.ix[index,'gender'] = "MALE"
-        elif age_gender_map.loc[index]['gender'] == "female":
-            age_gender_map.ix[index, 'gender'] = "FEMALE"
+    print("in formatgender")
+    age_gender_map.gender[age_gender_map.gender == 'male'] = 'MALE'
+    age_gender_map.gender[age_gender_map.gender == 'female'] = 'FEMALE'
 
 def add_values_agb():
+    print("in add_values_agb")
     global age_gender_map
     other_countries=set(train_users_data.country_destination)-set(age_gender_map.country_destination)
     other_gender=set(train_users_data.gender)-set(age_gender_map.gender)
@@ -33,13 +31,14 @@ def add_values_agb():
 
 ## encodeage performed on train_users_data
 def encodeage():
+    print("in encodeage")
     bins = np.array([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 120])
     group_names = ['0-4', '5-9', '10-14', '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54', \
                    '55-59', '60-64', '65-69', '70-74', '75-79', '80-84', '85-89', '90-94', '95-99', '100+']
-
-    train_users_data['age_bucket']=pd.cut(train_users_data.age, bins, labels=group_names)
+    train_users_data['age_bucket']=pd.cut(train_users_data.age.astype(int), bins, labels=group_names)
 
 def add_missing_age_gender_data():
+    print("in add_missing_age_gender_data")
     global age_gender_map
     bkts=set(age_gender_map.age_bucket)
     for k in bkts:
@@ -47,14 +46,15 @@ def add_missing_age_gender_data():
         age_gender_map = age_gender_map.append(newrow, ignore_index=True)
 
 def del_duplicate_columns():
+    print("in del_duplicated_columns")
+    global age_gender_map
     del train_users_data['timestamp_first_active']
-    del train_users_data['day']
-    del train_users_data['hour']
     del age_gender_map['age_bucket']
     del age_gender_map['gender']
     del age_gender_map['country_destination']
 
 def fix_age():
+    print("in fix_age")
     ## AirBnB allows users who are 18 and older
     train_users_data.age[train_users_data.age < 18] = np.nan
     train_users_data.age[train_users_data.age > 1998] = np.nan
@@ -63,16 +63,9 @@ def fix_age():
     train_users_data.ix[train_users_data.age.isnull(), 'age'] = np.median(train_users_data[train_users_data.age.notnull()].age)
 
 def fix_gender():
+    print("in fix_gender")
     train_users_data.gender[train_users_data.gender == '-unknown-'] = np.nan
 
-def fill_missing_values():
-    sessions_data.ix[sessions_data.action.isnull(), 'action'] = stats.mode(sessions_data[sessions_data.action.notnull()].action).mode[0]
-    sessions_data.ix[sessions_data.action_type == '-unknown-'] = np.nan
-    sessions_data.ix[sessions_data.action_type.isnull(), 'action_type'] = stats.mode(sessions_data[sessions_data.action_type.notnull()].action_type).mode[0]
-    sessions_data.ix[sessions_data.action_detail.isnull(), 'action_detail'] = stats.mode(sessions_data[sessions_data.action_detail.notnull()].action).mode[0]
-    sessions_data.ix[sessions_data.device_type == '-unknown-'] = np.nan
-    sessions_data.ix[sessions_data.device_type.isnull(), 'device_type'] = stats.mode(sessions_data[sessions_data.device_type.notnull()].device_type).mode[0]
-    sessions_data.ix[sessions_data.secs_elapsed.isnull(), 'secs_elapsed'] = np.median(sessions_data[sessions_data.secs_elapsed.notnull()].secs_elapsed)
 
 #############################################
 #                                           #
@@ -84,7 +77,8 @@ def fill_missing_values():
 train_users="train_users_2.csv"
 train_users_data=pd.read_csv(train_users)
 train_users_data=train_users_data[train_users_data.country_destination.notnull()]
-train_users_data=train_users_data[train_users_data.date_account_created <= train_users_data.date_first_booking]
+## Verify this line please
+train_users_data.ix[train_users_data.date_account_created > train_users_data.date_first_booking].date_account_created=train_users_data.date_first_booking
 train_users_features=list(train_users_data.columns.values)
 
 
@@ -116,7 +110,7 @@ all_features_list=set().union(train_users_features,age_gender_features,countries
 
 ## Fill in the missing values
 
-train_users_data.ix[train_users_data.date_first_booking.isnull(),'date_first_booking']=stats.mode(train_users_data[train_users_data.date_first_booking.notnull()].date_first_booking).mode[0]
+#train_users_data.ix[train_users_data.date_first_booking.isnull(),'date_first_booking']='N/A'
 
 # Split first_activity_time as date time and make new features
 
@@ -141,7 +135,7 @@ train_users_data=pd.merge(left=train_users_data,right=countries_data, left_on='c
 sLength=len(train_users_data['age'])
 train_users_data['age_bucket'] = pd.Series(np.empty(sLength, dtype=object), index=train_users_data.index)
 encodeage()
-train_users_data_copy=copy.deepcopy(train_users_data)
+#train_users_data_copy=copy.deepcopy(train_users_data)
 add_values_agb()
 formatgender()
 
@@ -164,12 +158,71 @@ train_users_data.to_csv('train_users_v2.csv')
 ############ For sessions table #############
 # write function to add missing values
 
+def fill_missing_values():
+    sessions_data.ix[sessions_data.secs_elapsed.isnull(), 'secs_elapsed'] = np.median(sessions_data[sessions_data.secs_elapsed.notnull()].secs_elapsed)
+
+print("starting sessions")
+sessions_data = pd.read_csv('sessions.csv')
+
+#cleaning sessions table
 fill_missing_values()
 
-#######Encoding###
-## Refer: http://chrisalbon.com/python/pandas_binning_data.html
+sessions_data.rename(columns = {'user_id': 'id'}, inplace=True)
+sessions_data['action'].fillna(-1, inplace=True)
+sessions_data['action_type'].fillna(-1, inplace=True)
+sessions_data['action_detail'].fillna(-1, inplace=True)
 
-bins=np.array([])   ##someone write those bins value by finding the distribution of these values
-group_names = ['Low', 'Okay', 'Good', 'Great']  ## Edit the group names as per your desire
-pd.cut(sessions_data['secs_elapsed'], bins, labels=group_names)
-df['secs_elapsed_categories'] = pd.cut(df['secs_elapsed'], bins, labels=group_names)
+#binning seconds_elapsed
+bins = [0,10800,21600,43200,86400,172800,1799949]  #172800 = 48 hours
+group_names=["Very_less","Less","Descent","More","High","Very_high"]
+sessions_data['secs_elapsed_categories']=pd.cut(sessions_data['secs_elapsed'].astype(int),bins,labels=group_names)
+
+
+##########################################################
+# That guy's approach:-finding frequency of each element #
+##########################################################
+
+#action_table
+action = pd.DataFrame(pd.pivot_table(sessions_data, values='secs_elapsed_categories', index='id', columns='action', aggfunc=len, fill_value=0))
+action.rename(columns=lambda x: 'action_'+str(x), inplace=True)
+action.reset_index( inplace=True)
+
+#action_detail_table
+action_detail = pd.DataFrame(pd.pivot_table(sessions_data, values='secs_elapsed_categories', index='id', columns='action_detail', aggfunc=len, fill_value=0))
+action_detail.rename(columns=lambda x: 'action_detail_'+str(x), inplace=True)
+action_detail.reset_index( inplace=True)
+
+#action_type_table
+action_type = pd.DataFrame(pd.pivot_table(sessions_data, values='secs_elapsed_categories', index='id', columns='action_type', aggfunc=len, fill_value=0))
+action_type.rename(columns=lambda x: 'action_type_'+str(x), inplace=True)
+action_type.reset_index( inplace=True)
+
+#device_type_table
+device_type = pd.DataFrame(pd.pivot_table(sessions_data, values='secs_elapsed_categories', index='id', columns='device_type', aggfunc=len, fill_value=0))
+device_type.rename(columns=lambda x: 'device_type_'+str(x), inplace=True)
+device_type.reset_index( inplace=True)
+
+#seconds_elapsed_table
+secs_elapsed = pd.DataFrame(pd.pivot_table(sessions_data, values='secs_elapsed', index='id', columns='secs_elapsed_categories', aggfunc=len, fill_value=0))
+secs_elapsed.rename(columns=lambda x: 'secs_elapsed_'+str(x), inplace=True)
+secs_elapsed.reset_index( inplace=True)
+
+# number of different actions for each user
+grouped = sessions_data[['id', 'action']].groupby('id')
+fun1 = lambda x: len(pd.Series(x).value_counts())
+action_num = grouped.aggregate(fun1)
+action_num = pd.DataFrame(action_num)
+action_num.reset_index( inplace=True)
+
+#Don't delete secs_elapsed before this
+del sessions_data['secs_elapsed']
+
+#join all these 5 pivot_tables and a column
+
+final_table = pd.merge(action, action_detail,'left', on=['id'])
+final_table = pd.merge(final_table,action_type,'left', on=['id'])
+final_table = pd.merge(final_table,device_type,'left', on=['id'])
+final_table = pd.merge(final_table,secs_elapsed,'left', on=['id'])
+final_table = pd.merge(final_table,action_num,'left', on=['id'])
+
+final_table.to_csv('sessions2.csv')
