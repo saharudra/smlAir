@@ -107,6 +107,15 @@ def fix_age():
 def fix_gender():
     train_users_data.gender[train_users_data.gender == '-unknown-'] = np.nan
 
+def fill_missing_values():
+    sessions_data.ix[sessions_data.action.isnull(), 'action'] = stats.mode(sessions_data[sessions_data.action.notnull()].action).mode[0]
+    sessions_data.ix[sessions_data.action_type == '-unknown-'] = np.nan
+    sessions_data.ix[sessions_data.action_type.isnull(), 'action_type'] = stats.mode(sessions_data[sessions_data.action_type.notnull()].action_type).mode[0]
+    sessions_data.ix[sessions_data.action_detail.isnull(), 'action_detail'] = stats.mode(sessions_data[sessions_data.action_detail.notnull()].action).mode[0]
+    sessions_data.ix[sessions_data.device_type == '-unknown-'] = np.nan
+    sessions_data.ix[sessions_data.device_type.isnull(), 'device_type'] = stats.mode(sessions_data[sessions_data.device_type.notnull()].device_type).mode[0]
+    sessions_data.ix[sessions_data.secs_elapsed.isnull(), 'secs_elapsed'] = np.median(sessions_data[sessions_data.secs_elapsed.notnull()].secs_elapsed)
+
 #############################################
 #                                           #
 #               MAIN FUNCTION               #
@@ -192,3 +201,17 @@ del_duplicate_columns()
 train_users_data=pd.merge(left=train_users_data,right=age_gender_map, left_on='age_gender_dest', right_on='age_gender_dest')
 
 train_users_data.to_csv('train_users_v2.csv')
+
+
+############ For sessions table #############
+# write function to add missing values
+
+fill_missing_values()
+
+#######Encoding###
+## Refer: http://chrisalbon.com/python/pandas_binning_data.html
+
+bins=np.array([])   ##someone write those bins value by finding the distribution of these values
+group_names = ['Low', 'Okay', 'Good', 'Great']  ## Edit the group names as per your desire
+pd.cut(sessions_data['secs_elapsed'], bins, labels=group_names)
+df['secs_elapsed_categories'] = pd.cut(df['secs_elapsed'], bins, labels=group_names)
