@@ -52,6 +52,8 @@ def del_duplicate_columns():
     del age_gender_map['age_bucket']
     del age_gender_map['gender']
     del age_gender_map['country_destination']
+    del train_users_data['date_first_active']
+    del train_users_data['date_first_booking']
 
 def fix_age():
     print("in fix_age")
@@ -78,9 +80,9 @@ train_users="train_users_2.csv"
 train_users_data=pd.read_csv(train_users)
 train_users_data=train_users_data[train_users_data.country_destination.notnull()]
 ## Verify this line please
-train_users_data.ix[train_users_data.date_account_created > train_users_data.date_first_booking].date_account_created=train_users_data.date_first_booking
+#train_users_data.ix[train_users_data.date_account_created > train_users_data.date_first_booking].date_account_created=train_users_data.date_first_booking
 train_users_features=list(train_users_data.columns.values)
-
+train_users_data['date_first_booking']=pd.to_datetime(train_users_data['date_first_booking'])
 
 fix_age()
 
@@ -118,6 +120,10 @@ train_users_data['date_first_active']=pd.to_datetime(train_users_data.timestamp_
 train_users_data['day']=train_users_data.timestamp_first_active//1000000 - (train_users_data.timestamp_first_active//100000000)*100
 train_users_data['part_of_month']=pd.cut(train_users_data.day, 3, labels=["Start of month", "Mid month","End of month"])
 train_users_data['month']=(train_users_data.timestamp_first_active//100000000) - (train_users_data.timestamp_first_active//10000000000*100)
+train_users_data['span']=abs(train_users_data['date_first_active']-train_users_data['date_first_booking'])#/len(train_users_data[train_users_data.country_destination != 'NDF'])
+train_users_data['span']=train_users_data['span'].fillna(-1)
+train_users_data['span']=train_users_data['span'].astype('timedelta64[D]').astype('float64')
+train_users_data.span=train_users_data.span.replace('-1', np.mean(train_users_data[train_users_data.date_first_booking.notnull()]['span']))
 
 ## Binning the time
 train_users_data.timestamp_first_active=train_users_data.timestamp_first_active.astype(str)
