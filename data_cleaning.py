@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+from sklearn import preprocessing
 
 def formatgender():
     print("in formatgender")
@@ -74,6 +74,11 @@ def fix_gender():
 def fill_missing_values():
     sessions_data.ix[sessions_data.secs_elapsed.isnull(), 'secs_elapsed'] = np.median(sessions_data[sessions_data.secs_elapsed.notnull()].secs_elapsed)
 
+def encode_country_destination():
+    print("in encode_country_destination")
+    le = preprocessing.LabelEncoder()
+    le.fit(list(set(train_users_data.country_destination)))
+    train_users_data.country_destination = le.transform(train_users_data.country_destination)
 
 #############################################
 #                                           #
@@ -209,7 +214,7 @@ train_users_data = pd.merge(left=train_users_data,right = sessions_table, on=['i
 
 
 #one hot encoding
-ohe_features = ['age_bucket','country_destination','destination_language ','language','part_of_month','daypart','gender','first_affiliate_tracked','affiliate_channel','affiliate_provider','first_browser','first_device_type','signup_app','signup_method']
+ohe_features = ['age_bucket', 'destination_language ','language','part_of_month','daypart','gender','first_affiliate_tracked','affiliate_channel','affiliate_provider','first_browser','first_device_type','signup_app','signup_method']
 for f in ohe_features:
     train_users_data_dummy = pd.get_dummies(train_users_data[f], prefix=f)
     train_users_data = train_users_data.drop([f], axis=1)
@@ -225,6 +230,8 @@ for x in ohe_features:
     train_users_data_dummy = pd.get_dummies(train_users_data[x], prefix=x)
     train_users_data = train_users_data.drop([x], axis=1)
     train_users_data = pd.concat((train_users_data, train_users_data_dummy), axis=1)
+
+encode_country_destination()
 
 train_users_data.fillna(-1, inplace=True)
 train_users_data.to_csv('final_table.csv')
