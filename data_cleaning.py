@@ -55,7 +55,7 @@ def del_duplicate_columns():
     del train_users_data['date_first_active']
     del train_users_data['date_first_booking']
     del train_users_data['date_account_created']
-    del train_users_data['age']
+ #   del train_users_data['age']
 
 def fix_age():
     print("in fix_age")
@@ -65,6 +65,7 @@ def fix_age():
     train_users_data.age[train_users_data.age > 1896] = 2016 - train_users_data.age
     train_users_data.age[train_users_data.age > 120] = np.nan
     train_users_data.ix[train_users_data.age.isnull(), 'age'] = np.median(train_users_data[train_users_data.age.notnull()].age)
+    train_users_data['young'] = np.where(train_users_data['age'] <= 50, 1, 0)
 
 def fix_gender():
     print("in fix_gender")
@@ -232,6 +233,6 @@ for x in ohe_features:
     train_users_data = pd.concat((train_users_data, train_users_data_dummy), axis=1)
 
 encode_country_destination()
-
+train_users_data['span/active'] = train_users_data['span'].train_users_data('float64') /train_users_data['active_hours'].astype('float64')
 train_users_data.fillna(-1, inplace=True)
 train_users_data.to_csv('final_table.csv')
