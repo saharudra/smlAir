@@ -1,4 +1,4 @@
-#features - 1324
+#features - 1316
 #entries - 213451
 
 
@@ -24,6 +24,9 @@ ABOUT FEATURES
 
 -on the basis of age_bucket, gender, country_destination(in age_gender_bkts.csv) a new feature is created "age_gender_dest"(in final_table.csv). Later on its  one-hot encoded.
 
--gender, signup_method, affiliate_channel, affiliate_provider, first_affiliate_tracked, signup_app, first_device_type, first_browser, country_destination(in train_users_2.csv) is one-hot encoded.
+-gender, signup_method, affiliate_channel, affiliate_provider, first_affiliate_tracked, signup_app, first_device_type, first_browser is one-hot encoded.
+
+-country_destination(in train_users_2.csv) is label encode.
+
 
 
