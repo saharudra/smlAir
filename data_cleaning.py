@@ -36,6 +36,7 @@ def encodeage():
     group_names = ['0-4', '5-9', '10-14', '15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54', \
                    '55-59', '60-64', '65-69', '70-74', '75-79', '80-84', '85-89', '90-94', '95-99', '100+']
     train_users_data['age_bucket']=pd.cut(train_users_data.age.astype(int), bins, labels=group_names)
+    test_users_data['age_bucket'] = pd.cut(test_users_data.age.astype(int), bins, labels=group_names)
 
 def add_missing_age_gender_data():
     print("in add_missing_age_gender_data")
@@ -55,6 +56,10 @@ def del_duplicate_columns():
     del train_users_data['date_first_active']
     del train_users_data['date_first_booking']
     del train_users_data['date_account_created']
+    del test_users_data['date_first_active']
+    del test_users_data['date_first_booking']
+    del test_users_data['date_account_created']
+    del test_users_data['timestamp_first_active']
  #   del train_users_data['age']
 
 def fix_age():
@@ -66,11 +71,18 @@ def fix_age():
     train_users_data.age[train_users_data.age > 120] = np.nan
     train_users_data.ix[train_users_data.age.isnull(), 'age'] = np.median(train_users_data[train_users_data.age.notnull()].age)
     train_users_data['young'] = np.where(train_users_data['age'] <= 50, 1, 0)
+    test_users_data.age[test_users_data.age < 18] = np.nan
+    test_users_data.age[test_users_data.age > 1998] = np.nan
+    test_users_data.age[test_users_data.age > 1896] = 2016 - test_users_data.age
+    test_users_data.age[test_users_data.age > 120] = np.nan
+    test_users_data.ix[test_users_data.age.isnull(), 'age'] = np.median(\
+        test_users_data[test_users_data.age.notnull()].age)
+
 
 def fix_gender():
     print("in fix_gender")
     train_users_data.gender[train_users_data.gender == '-unknown-'] = np.nan
-
+    test_users_data.gender[test_users_data.gender == '-unknown-'] = np.nan
 
 def fill_missing_values():
     sessions_data.ix[sessions_data.secs_elapsed.isnull(), 'secs_elapsed'] = np.median(sessions_data[sessions_data.secs_elapsed.notnull()].secs_elapsed)
@@ -114,7 +126,7 @@ sessions_features=list(sessions_data.columns.values)
 
 test_users_data=pd.read_csv('test_users.csv')
 test_users_features=list(test_users_data.columns.values)
-
+fix_age()
 #all_features_list=set().union(train_users_features,age_gender_features,countries_features,sessions_features,test_users_features)
 
 # Split first_activity_time as date time and make new features
@@ -142,6 +154,30 @@ train_users_data=pd.merge(left=train_users_data,right=countries_data, left_on='c
 
 sLength=len(train_users_data['age'])
 train_users_data['age_bucket'] = pd.Series(np.empty(sLength, dtype=object), index=train_users_data.index)
+
+"""
+SAME STEPS FOR TEST DATA
+"""
+test_users_data['date_first_booking']=pd.to_datetime(test_users_data['date_first_booking'])
+test_users_data.date_account_created=pd.to_datetime(test_users_data.date_account_created)
+
+test_users_data['date_first_active']=pd.to_datetime(test_users_data.timestamp_first_active//1000000, format='%Y%m%d')
+test_users_data['date_in_month']=test_users_data.timestamp_first_active//1000000 - (test_users_data.timestamp_first_active//100000000)*100
+test_users_data['part_of_month']=pd.cut(test_users_data.date_in_month, 3, labels=["Start of month", "Mid month","End of month"])
+test_users_data['month']=(test_users_data.timestamp_first_active//100000000) - (test_users_data.timestamp_first_active//10000000000*100)
+test_users_data.timestamp_first_active=test_users_data.timestamp_first_active.astype(str)
+test_users_data['active_hours']=test_users_data.timestamp_first_active.str[8:10].astype(int)
+bins=[0,6,10,15,19,23]
+group_names=["Late night","Early Morning","Mid Day","Afternoon","Evening"]
+test_users_data['daypart']=pd.cut(test_users_data['active_hours'],bins,labels=group_names)
+test_users_data['daypart']=test_users_data['daypart'].astype(object)
+test_users_data['daypart'].fillna(-1, inplace=True)
+test_users_data['first_affiliate_tracked']=test_users_data['first_affiliate_tracked'].replace(np.nan,'unknown')
+
+sLength=len(test_users_data['age'])
+test_users_data['age_bucket'] = pd.Series(np.empty(sLength, dtype=object), index=test_users_data.index)
+
+"""NOW COMMON STEPS"""
 encodeage()
 #train_users_data_copy=copy.deepcopy(train_users_data)
 add_values_agb()
@@ -152,8 +188,6 @@ age_gender_map['age_gender_dest']=age_gender_map[['country_destination','gender'
 
 #filling empty values
 train_users_data['daypart'].fillna(-1, inplace=True)
-
-
 
 ############ For sessions table #############
 
@@ -213,7 +247,6 @@ sessions_table = pd.merge(sessions_table,action_num,'left', on=['id'])
 
 train_users_data = pd.merge(left=train_users_data,right = sessions_table, on=['id'], how='left')
 
-
 #one hot encoding
 ohe_features = ['age_bucket', 'destination_language ','language','part_of_month','daypart','gender','first_affiliate_tracked','affiliate_channel','affiliate_provider','first_browser','first_device_type','signup_app','signup_method']
 for f in ohe_features:
@@ -221,7 +254,16 @@ for f in ohe_features:
     train_users_data = train_users_data.drop([f], axis=1)
     train_users_data = pd.concat((train_users_data, train_users_data_dummy), axis=1)
 
+#one hot encoding
+ohe_features = ['age_bucket', 'language','part_of_month','daypart','gender','first_affiliate_tracked', \
+                'affiliate_channel','affiliate_provider','first_browser','first_device_type', \
+                'signup_app','signup_method']
+for f in ohe_features:
+    test_users_data_dummy = pd.get_dummies(test_users_data[f], prefix=f)
+    test_users_data = test_users_data.drop([f], axis=1)
+    test_users_data = pd.concat((test_users_data, test_users_data_dummy), axis=1)
 
+test_users_data = pd.merge(left=test_users_data,right = sessions_table, on=['id'], how='left')
 del_duplicate_columns()
 
 train_users_data=pd.merge(left=train_users_data,right=age_gender_map, left_on='age_gender_dest', right_on='age_gender_dest')
@@ -236,3 +278,5 @@ encode_country_destination()
 train_users_data['span/active'] = train_users_data['span'].train_users_data('float64') /train_users_data['active_hours'].astype('float64')
 train_users_data.fillna(-1, inplace=True)
 train_users_data.to_csv('final_table.csv')
+test_users_data.to_csv('test_data.csv')
+
