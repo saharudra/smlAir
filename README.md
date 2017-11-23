@@ -1,20 +1,5 @@
-# smlAir
-Tracking work for now.
+An implementation for the Airbnb challenge hosted on kaggle.
+The current code uses a blending method that won the netflix grand prize.
+Implementation is crude and doesnot achieve good accuracy.
 
-Updating lists of contents covered so far:
-  1. Clubbed 'train_users_2.csv', 'countries.csv' and 'age_gender_buckets.csv'
-  2. Filled all missing values for train_users 
-  3. Adding sessions data to training data.
- 
- 
- #ToDo:
- 1. Sarthak : Correlation and statistical views
- 2. Chandrakanth : More hidden features?????
- 3. Rudra : Ensemble (complete the prototype)
- 4. Gopal : Ensemble (blending things)
- 5. Aditi : Encoding the labels properly
- 6. Chaynika : Preprocessing and encoding 
-
-FOR REFERENCE:
->>> set(train1.country_destination)
-set(['FR', 'NL', 'PT', 'CA', 'DE', 'IT', 'US', 'NDF', 'other', 'AU', 'GB', 'ES'])
+Usses SVM, KNN and logistic  regression as components of the blending ensemble.
